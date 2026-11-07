@@ -1,0 +1,33 @@
+{
+  "name": "canvas-companion",
+  "version": "0.1.0",
+  "description": "Your Canvas LMS assignments, due dates, grades and announcements as notes in your vault: one note per course, a This week note, and a calendar feed.",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && eslint . && node esbuild.config.mjs production",
+    "test": "vitest run",
+    "version": "node version-bump.mjs && git add manifest.json versions.json",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "obsidian",
+    "canvas",
+    "canvas-lms",
+    "assignments",
+    "student"
+  ],
+  "author": "Tony Peonio",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "esbuild": "^0.25.12",
+    "eslint": "^9.39.5",
+    "eslint-plugin-obsidianmd": "^0.5.0",
+    "obsidian": "^1.14.4",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^3.2.7"
+  }
+}

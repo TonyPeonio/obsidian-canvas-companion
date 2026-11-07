@@ -1,0 +1,7 @@
+/* Canvas Companion */
+.canvas-companion-textarea {
+	width: 100%;
+	min-width: 22em;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+}
