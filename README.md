@@ -19,14 +19,21 @@ machine except the requests to your school's Canvas.
   tool or git history.
 - Free and open source, MIT licensed. No accounts beyond your Canvas token, no telemetry.
 
-Canvas Companion is one of a set of Obsidian plugins for students by the same author, all at
-[github.com/TonyPeonio](https://github.com/TonyPeonio): **Local Vault Agent** (search, compile
-and edit notes with a local model via Ollama, every change shown as a diff first),
-**Lecture Companion** (record lectures with local transcription, pull the day's slides from
-Canvas, summarize into course notes), **Exam Companion** (a day-by-day study plan, quizzes and
-flashcards from your own notes) and **Paper Companion** (Zotero search and page-cited reading
-notes). Each works on its own; they use the same `Courses/<Course>.md` note names, so Lecture
-Companion's notes land next to the assignments for that course.
+Canvas Companion is part of the Companion suite of local-first Obsidian plugins by Tony Peonio for
+students and researchers: your machine does the work, every change is a diff you approve, and the
+numbers are published. The others are Local Vault Agent (local Ollama agent that searches, compiles,
+edits notes), Lecture Companion (live local lecture transcription, Canvas slides, Ollama summaries),
+Exam Companion (day-by-day study plan, daily quizzes and flashcards), Paper Companion (Zotero search
+by meaning, page-cited reading notes), Research Log Companion (append-only lab notebook with git,
+parameters, data hashes), Meeting Companion (local meeting transcription, decisions, action items,
+weekly digest), Job Hunt Companion (job applications as notes, resume tailoring, interview
+questions), Fellowship Companion (grants and fellowships: deadlines, materials, letters,
+eligibility), Code Companion (commits in the daily note, weekly report, TODOs), Teaching Companion
+(local-model rubric grading with verbatim evidence) and Branching Table of Contents (parent/child
+properties as a rooted family tree). All at [github.com/TonyPeonio](https://github.com/TonyPeonio).
+
+Each works on its own; Canvas Companion and Lecture Companion use the same `Courses/<Course>.md`
+note names, so Lecture Companion's notes land next to the assignments for that course.
 
 ## Requirements
 
