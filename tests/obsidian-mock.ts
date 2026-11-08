@@ -5,8 +5,20 @@ export class ItemView {}
 export class Modal {}
 export class PluginSettingTab {}
 export class Setting {}
-export class Notice {}
-export class TFile {}
+export class Notice {
+	/** Every message shown, oldest first; tests clear it between cases. */
+	static messages: string[] = [];
+	constructor(message?: string, _timeout?: number) {
+		Notice.messages.push(String(message ?? ""));
+	}
+	setMessage(): this {
+		return this;
+	}
+	hide(): void {}
+}
+export class TFile {
+	path = "";
+}
 export class TFolder {}
 export class MarkdownView {}
 export class WorkspaceLeaf {}

@@ -37,16 +37,7 @@ export default class CanvasCompanionPlugin extends Plugin {
 
 		this.addRibbonIcon("graduation-cap", "Sync with Canvas", () => void this.sync(true));
 		this.addCommand({ id: "sync", name: "Sync with Canvas", callback: () => void this.sync(true) });
-		this.addCommand({
-			id: "open-this-week",
-			name: "Open this week",
-			checkCallback: (checking) => {
-				const path = normalizePath(this.settings.thisWeekPath);
-				if (!path) return false;
-				if (!checking) void this.app.workspace.openLinkText(path, "", false);
-				return true;
-			},
-		});
+		this.addCommand({ id: "open-this-week", name: "Open this week", callback: () => void this.openThisWeek() });
 
 		this.app.workspace.onLayoutReady(() => {
 			if (this.settings.syncOnStartup && this.canvas.configured) void this.sync(false);
@@ -68,6 +59,42 @@ export default class CanvasCompanionPlugin extends Plugin {
 		if (minutes <= 0) return;
 		this.timer = window.setInterval(() => void this.sync(false), minutes * 60_000);
 		this.registerInterval(this.timer);
+	}
+
+	/**
+	 * Opens the This week note. The note is written by the sync, so when it does not exist yet
+	 * this runs a sync first (or says what to set up); it never throws.
+	 */
+	async openThisWeek(): Promise<void> {
+		try {
+			const path = normalizePath(this.settings.thisWeekPath.trim());
+			if (!path) {
+				new Notice("Canvas Companion: no This week note is configured. Set its path in the plugin settings.", 8000);
+				return;
+			}
+			let file = this.app.vault.getFileByPath(path);
+			if (!file) {
+				if (!this.canvas.configured) {
+					new Notice("Canvas Companion: the This week note is created by the first sync. Set the Canvas URL and access token in the plugin settings, then run Sync with Canvas.", 10000);
+					return;
+				}
+				if (this.syncing) {
+					new Notice("Canvas Companion: a sync is running; the This week note will be there when it finishes.", 6000);
+					return;
+				}
+				new Notice(`Canvas Companion: no This week note yet, syncing with Canvas…`, 4000);
+				const report = await this.sync(false);
+				file = this.app.vault.getFileByPath(path);
+				if (!file) {
+					// A failed sync has already shown its own Notice.
+					if (report && !report.error) new Notice(`Canvas Companion: the sync finished but wrote no note at ${path}.`, 8000);
+					return;
+				}
+			}
+			await this.app.workspace.getLeaf(false).openFile(file);
+		} catch (err) {
+			new Notice(`Canvas Companion: could not open the This week note: ${(err as Error).message}`, 8000);
+		}
 	}
 
 	/** Runs one sync; `verbose` reports the result in a Notice, quiet runs only report errors. */
