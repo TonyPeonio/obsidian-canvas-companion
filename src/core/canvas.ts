@@ -141,9 +141,9 @@ export class CanvasClient {
 
 export function nextLink(linkHeader: string | undefined): string | undefined {
 	if (!linkHeader) return undefined;
-	for (const part of linkHeader.split(",")) {
-		const m = /<([^>]+)>\s*;\s*rel="?next"?/.exec(part.trim());
-		if (m) return m[1];
+	// Match each `<url>; rel="x"` pair directly instead of splitting on commas, which may occur inside a URL.
+	for (const m of linkHeader.matchAll(/<([^>]+)>\s*;\s*rel="?([^";,]+)"?/g)) {
+		if (m[2] === "next") return m[1];
 	}
 	return undefined;
 }
@@ -166,6 +166,7 @@ function toAssignment(row: Json, courseId: number): Assignment | null {
 		graded,
 		score,
 		missing: sub?.missing === true,
+		late: sub?.late === true,
 	};
 }
 
@@ -191,7 +192,7 @@ function describeError(status: number, text: string): string {
 	} catch {
 		detail = text.slice(0, 200);
 	}
-	if (status === 401) return `Canvas rejected the access token (401). Create a new token under Account → Settings → Approved Integrations and paste it into the plugin settings. ${detail}`.trim();
+	if (status === 401) return `Canvas rejected the access token (401): it is invalid or expired. In Canvas open Account → Settings → Approved Integrations → New Access Token, then paste the new token into the plugin settings. ${detail}`.trim();
 	if (status === 403) return `Canvas refused the request (403): ${detail || "no permission"}`;
 	if (status === 404) return `Canvas: not found (404). Check the Canvas URL and that you are enrolled. ${detail}`.trim();
 	return `Canvas returned HTTP ${status}: ${detail}`;

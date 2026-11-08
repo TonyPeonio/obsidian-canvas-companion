@@ -85,6 +85,8 @@ describe("CanvasClient", () => {
 		expect(nextLink('<https://a/b?page=2>; rel="next", <https://a/b?page=9>; rel="last"')).toBe("https://a/b?page=2");
 		expect(nextLink('<https://a/b?page=9>; rel="last"')).toBeUndefined();
 		expect(nextLink(undefined)).toBeUndefined();
+		// Canvas puts rel="current" first and may carry commas inside a URL (bookmark cursors, list params).
+		expect(nextLink('<https://a/b?page=bookmark:x,y&per_page=50>; rel="current",<https://a/b?page=bookmark:z,w&per_page=50>; rel="next"')).toBe("https://a/b?page=bookmark:z,w&per_page=50");
 		expect(new CanvasError("x", 401).status).toBe(401);
 	});
 });

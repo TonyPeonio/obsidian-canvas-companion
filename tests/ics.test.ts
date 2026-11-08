@@ -5,7 +5,7 @@ import type { Assignment, CourseData } from "../src/core/model";
 const now = new Date("2026-11-07T18:00:00Z");
 
 function assignment(over: Partial<Assignment>): Assignment {
-	return { id: 1, courseId: 1, name: "HW", dueAt: null, pointsPossible: 10, htmlUrl: "https://c/a/1", submitted: false, graded: false, score: null, missing: false, ...over };
+	return { id: 1, courseId: 1, name: "HW", dueAt: null, pointsPossible: 10, htmlUrl: "https://c/a/1", submitted: false, graded: false, score: null, missing: false, late: false, ...over };
 }
 
 describe("renderIcs", () => {

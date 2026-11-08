@@ -41,15 +41,15 @@ function formatNumber(n: number): string {
 	return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
 }
 
-/** One task line in the format the Tasks plugin reads (📅 due date, ⏰ time). */
+/** One task line in the format the Tasks plugin reads (📅 due date, ⏰ time); flags missing or late work. */
 export function taskLine(a: Assignment, opts: { withCourse?: string } = {}): string {
 	const due = parseIso(a.dueAt);
 	const box = a.submitted ? "[x]" : "[ ]";
 	const name = opts.withCourse ? `${opts.withCourse}: ${a.name}` : a.name;
 	const when = due ? ` 📅 ${localDate(due)} ⏰ ${localTime(due)}` : "";
-	const missing = !a.submitted && a.missing ? " ⚠️ missing" : "";
+	const flag = !a.submitted && a.missing ? " ⚠️ missing" : a.late ? " ⚠️ late" : "";
 	const link = a.htmlUrl ? ` [Canvas](${a.htmlUrl})` : "";
-	return `- ${box} ${name}${when}${pointsLabel(a)}${missing}${link}`;
+	return `- ${box} ${name}${when}${pointsLabel(a)}${flag}${link}`;
 }
 
 export function renderAssignments(data: CourseData, opts: RenderOptions): string {

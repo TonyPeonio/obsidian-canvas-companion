@@ -21,6 +21,8 @@ export interface Assignment {
 	score: number | null;
 	/** Canvas marked the submission missing. */
 	missing: boolean;
+	/** Canvas marked the submission late (handed in after the due date). */
+	late: boolean;
 }
 
 export interface Announcement {

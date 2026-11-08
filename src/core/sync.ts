@@ -61,6 +61,38 @@ export function parseAliases(text: string): Record<string, string> {
 	return out;
 }
 
+type Announcements = Awaited<ReturnType<CanvasClient["listAnnouncements"]>>;
+
+/**
+ * Announcements come in one call for all courses. Canvas refuses that whole call (401/403)
+ * when the token may not read announcements in even one of them, so on refusal fall back to
+ * one call per course: the readable courses still get theirs and only the refused ones are
+ * reported. Any other failure (network, 5xx) is reported for every course without retrying.
+ */
+async function fetchAnnouncements(client: CanvasClient, courseIds: number[], perCourse: number): Promise<{ announcements: Announcements; errors: Map<number, string> }> {
+	const errors = new Map<number, string>();
+	if (courseIds.length === 0) return { announcements: [], errors };
+	try {
+		return { announcements: await client.listAnnouncements(courseIds, perCourse * courseIds.length), errors };
+	} catch (err) {
+		const refused = err instanceof CanvasError && (err.status === 401 || err.status === 403);
+		if (!refused || courseIds.length === 1) {
+			for (const id of courseIds) errors.set(id, (err as Error).message);
+			return { announcements: [], errors };
+		}
+	}
+	const announcements: Announcements = [];
+	for (const id of courseIds) {
+		try {
+			announcements.push(...(await client.listAnnouncements([id], perCourse)));
+		} catch (err) {
+			errors.set(id, (err as Error).message);
+		}
+	}
+	announcements.sort((a, b) => Date.parse(b.postedAt) - Date.parse(a.postedAt));
+	return { announcements, errors };
+}
+
 export async function syncCanvas(client: CanvasClient, store: NoteStore, settings: SyncSettings, now: Date = new Date(), onStatus?: (s: string) => void): Promise<SyncReport> {
 	const report: SyncReport = { courses: [], written: [] };
 	if (!client.configured) {
@@ -75,18 +107,8 @@ export async function syncCanvas(client: CanvasClient, store: NoteStore, setting
 		report.error = err instanceof CanvasError ? err.message : `Canvas sync failed: ${(err as Error).message}`;
 		return report;
 	}
-	// Announcements come in one call for all courses; a failure there must not block assignments.
-	let announcements: Awaited<ReturnType<CanvasClient["listAnnouncements"]>> = [];
-	let announcementsError: string | undefined;
-	try {
-		onStatus?.("Fetching announcements…");
-		announcements = await client.listAnnouncements(
-			courses.map((c) => c.id),
-			Math.max(settings.announcementsToKeep, 1) * Math.max(courses.length, 1),
-		);
-	} catch (err) {
-		announcementsError = (err as Error).message;
-	}
+	onStatus?.("Fetching announcements…");
+	const { announcements, errors: announcementErrors } = await fetchAnnouncements(client, courses.map((c) => c.id), Math.max(settings.announcementsToKeep, 1));
 
 	const folder = settings.coursesFolder.replace(/^\/+|\/+$/g, "");
 	const perCourse: { vaultName: string; data: CourseData }[] = [];
@@ -104,7 +126,8 @@ export async function syncCanvas(client: CanvasClient, store: NoteStore, setting
 		} catch {
 			// Grades are optional; many courses hide them.
 		}
-		if (announcementsError && !data.error) data.error = `Announcements could not be read: ${announcementsError}`;
+		const announcementsError = announcementErrors.get(course.id);
+		if (announcementsError) data.error = [data.error, `Announcements could not be read: ${announcementsError}`].filter(Boolean).join(" ");
 		const vaultName = vaultNameFor(course, settings.aliases);
 		const path = `${folder ? folder + "/" : ""}${safeFileName(vaultName)}.md`;
 		const existing = await store.read(path);
