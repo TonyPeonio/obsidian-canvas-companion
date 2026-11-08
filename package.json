@@ -1,6 +1,6 @@
 {
   "name": "canvas-companion",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Your Canvas LMS assignments, due dates, grades and announcements as notes in your vault: one note per course, a This week note, and a calendar feed.",
   "main": "main.js",
   "private": true,

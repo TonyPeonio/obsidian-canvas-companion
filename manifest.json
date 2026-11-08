@@ -1,7 +1,7 @@
 {
 	"id": "canvas-companion",
 	"name": "Canvas Companion",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"minAppVersion": "1.7.2",
 	"description": "Sync your Canvas LMS assignments, due dates, grades and announcements into one note per course, a This week note and a calendar feed.",
 	"author": "Tony Peonio",
