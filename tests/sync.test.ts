@@ -78,6 +78,71 @@ describe("syncCanvas", () => {
 	});
 });
 
+describe("idempotent sync", () => {
+	const url = () => "https://school.instructure.com";
+
+	it("writes identical notes on two runs with identical data and touches no file the second time", async () => {
+		const http = canvas();
+		const client = new CanvasClient(url, () => "tok", http.request);
+		const store = new MemoryStore();
+		await syncCanvas(client, store, settings, now);
+		const first = new Map(store.files);
+		expect(store.writes.length).toBe(4);
+		store.writes = [];
+		// An hour later, same day: DTSTAMP would differ, nothing a reader cares about has changed.
+		const again = await syncCanvas(client, store, settings, new Date(now.getTime() + 3_600_000));
+		expect(again.error).toBeUndefined();
+		expect(store.writes).toEqual([]);
+		expect(again.written).toEqual([]);
+		expect(store.files).toEqual(first);
+	});
+
+	it("keeps the user's own text outside the managed blocks when assignments change, and rewrites only what changed", async () => {
+		const http = canvas();
+		const client = new CanvasClient(url, () => "tok", http.request);
+		const store = new MemoryStore({
+			"Courses/CSCI 470.md": "---\ntags: [course]\n---\n# CSCI 470\n\nProfessor: Dr. X. Office hours Tue 2pm.\n\n## My notes\n\n- Exam covers chapters 1–5.\n",
+		});
+		await syncCanvas(client, store, settings, now);
+		const afterFirst = store.files.get("Courses/CSCI 470.md")!;
+		expect(afterFirst.startsWith("---\ntags: [course]\n---\n# CSCI 470\n\nProfessor: Dr. X. Office hours Tue 2pm.\n")).toBe(true);
+		expect(afterFirst).toContain("- [ ] HW 4 📅");
+		expect(afterFirst.endsWith("## My notes\n\n- Exam covers chapters 1–5.\n")).toBe(true);
+		// The user adds a line in their area; Canvas marks HW 4 submitted and adds HW 5.
+		store.files.set("Courses/CSCI 470.md", afterFirst + "- Ask about the curve.\n");
+		http.on("/api/v1/courses/1/assignments", [
+			{ id: 10, name: "HW 4", due_at: "2026-11-10T06:59:00Z", points_possible: 10, html_url: "https://c/a/10", submission: { workflow_state: "graded", score: 10, submitted_at: "2026-11-08T00:00:00Z" } },
+			{ id: 11, name: "HW 5", due_at: "2026-11-17T06:59:00Z", points_possible: 10, html_url: "https://c/a/11", submission: { workflow_state: "unsubmitted" } },
+		]);
+		store.writes = [];
+		const report = await syncCanvas(client, store, settings, now);
+		const afterSecond = store.files.get("Courses/CSCI 470.md")!;
+		expect(afterSecond.startsWith("---\ntags: [course]\n---\n# CSCI 470\n\nProfessor: Dr. X. Office hours Tue 2pm.\n")).toBe(true);
+		expect(afterSecond.endsWith("## My notes\n\n- Exam covers chapters 1–5.\n- Ask about the curve.\n")).toBe(true);
+		expect(afterSecond).toContain("- [x] HW 4 📅");
+		expect(afterSecond).toContain("- [ ] HW 5 📅");
+		expect(afterSecond.match(/<!-- canvas-companion:assignments -->/g)).toHaveLength(1);
+		// Linear Algebra did not change, so it was not rewritten.
+		expect(report.written.sort()).toEqual(["Courses/CSCI 470.md", "Courses/This week.md", "Courses/deadlines.ics"]);
+		expect(store.writes).not.toContain("Courses/Linear Algebra.md");
+	});
+
+	it("keeps a note's CRLF line endings instead of rewriting it to LF on every sync", async () => {
+		const http = canvas();
+		const client = new CanvasClient(url, () => "tok", http.request);
+		const crlf = "# CSCI 470\r\n\r\nWritten on Windows.\r\n\r\n## My notes\r\n\r\nKeep me.\r\n";
+		const store = new MemoryStore({ "Courses/CSCI 470.md": crlf });
+		await syncCanvas(client, store, settings, now);
+		const note = store.files.get("Courses/CSCI 470.md")!;
+		expect(note).not.toMatch(/[^\r]\n/);
+		expect(note).toContain("Written on Windows.\r\n");
+		expect(note).toContain("- [ ] HW 4 📅");
+		store.writes = [];
+		await syncCanvas(client, store, settings, now);
+		expect(store.writes).toEqual([]);
+	});
+});
+
 describe("aliases and hidden courses", () => {
 	it("maps by name or code, case-insensitively, and parses the settings text", () => {
 		const aliases = parseAliases("Fall 2026 CSCI-470-A Machine Learning = CSCI 470\nmath-332=Linear Algebra\nno equals here\n = empty");

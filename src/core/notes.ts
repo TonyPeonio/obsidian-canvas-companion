@@ -123,6 +123,8 @@ export function mergeManaged(existing: string | null, title: string, sections: R
 		const parts = [`# ${title}`, "", ...Object.entries(sections).map(([k, v]) => block(k, v)), "", "## My notes", ""];
 		return parts.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
 	}
+	// Work in LF; a note the user keeps in CRLF gets CRLF back so its line endings never churn.
+	const crlf = existing.includes("\r\n");
 	let out = existing.replace(/\r\n/g, "\n");
 	const missing: string[] = [];
 	for (const [key, body] of Object.entries(sections)) {
@@ -145,7 +147,8 @@ export function mergeManaged(existing: string | null, title: string, sections: R
 		const insert = missing.join("\n") + "\n";
 		out = idx >= 0 ? out.slice(0, idx + 1) + insert + out.slice(idx + 1) : out.trimEnd() + "\n\n" + insert;
 	}
-	return out.endsWith("\n") ? out : out + "\n";
+	const result = out.endsWith("\n") ? out : out + "\n";
+	return crlf ? result.replace(/\n/g, "\r\n") : result;
 }
 
 /** The This week note: overdue first, then one section per day for the next `days` days. */
