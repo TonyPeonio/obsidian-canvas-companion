@@ -33,15 +33,16 @@ export function renderIcs(courses: { vaultName: string; data: CourseData }[], no
 		for (const a of data.assignments) {
 			const due = parseIso(a.dueAt);
 			if (!due || due.getTime() < now.getTime() || a.submitted) continue;
+			// A deadline is a point in time: DTSTART alone (RFC 5545 forbids a DTEND equal to DTSTART).
+			const description = a.pointsPossible !== null ? `${vaultName}\n${a.pointsPossible} points` : vaultName;
 			const text = [
 				"BEGIN:VEVENT",
 				`UID:canvas-assignment-${a.id}@canvas-companion`,
 				`DTSTAMP:${stamp}`,
 				`DTSTART:${icsUtc(due)}`,
-				`DTEND:${icsUtc(due)}`,
 				`SUMMARY:${escapeText(`${vaultName}: ${a.name}`)}`,
+				`DESCRIPTION:${escapeText(description)}`,
 			];
-			if (a.pointsPossible !== null) text.push(`DESCRIPTION:${escapeText(`${a.pointsPossible} points`)}`);
 			if (a.htmlUrl) text.push(`URL:${a.htmlUrl}`);
 			text.push("END:VEVENT");
 			events.push({ due, text });
